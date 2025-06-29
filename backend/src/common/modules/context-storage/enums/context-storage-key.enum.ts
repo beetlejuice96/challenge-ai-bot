@@ -1,0 +1,3 @@
+export enum CONTEXT_STORAGE_KEY {
+  ACCESS_TOKEN = 'ACCESS_TOKEN',
+}
