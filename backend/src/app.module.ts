@@ -5,6 +5,8 @@ import { ConfigModule } from '@nestjs/config';
 import config from '@/common/config/env.config';
 import { validationSchema } from '@/common/config/env.validation-schema';
 import { DatabaseModule } from './database/database.module';
+import { ContextStorageModule } from './common/modules/context-storage/context-storage.module';
+import { LoggerModule } from './common/modules/logger/logger.module';
 
 @Module({
   imports: [
@@ -17,6 +19,8 @@ import { DatabaseModule } from './database/database.module';
     DatabaseModule,
     CartsModule,
     ProductsModule,
+    ContextStorageModule,
+    LoggerModule,
   ],
   controllers: [],
   providers: [],
