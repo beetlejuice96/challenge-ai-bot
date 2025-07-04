@@ -1,3 +1,4 @@
+import { ProductVariantEntity } from '@/products/entities/product-variant.entity';
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -8,7 +9,6 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { CartEntity } from './cart.entity';
-import { ProductEntity } from '@/products/entities';
 
 @Entity('cart_items')
 export class CartItemEntity {
@@ -19,7 +19,7 @@ export class CartItemEntity {
   cart_id: number;
 
   @Column({ type: 'int' })
-  product_id: number;
+  product_variant_id: number;
 
   @Column({ type: 'int', default: 1 })
   qty: number;
@@ -28,9 +28,9 @@ export class CartItemEntity {
   @JoinColumn({ name: 'cart_id' })
   cart: CartEntity;
 
-  @ManyToOne(() => ProductEntity, (product) => product.cartItems)
-  @JoinColumn({ name: 'product_id' })
-  product: ProductEntity;
+  @ManyToOne(() => ProductVariantEntity)
+  @JoinColumn({ name: 'product_variant_id' })
+  productVariant: ProductVariantEntity;
 
   @CreateDateColumn({ type: 'timestamp', name: 'created_at' })
   createdAt: Date;

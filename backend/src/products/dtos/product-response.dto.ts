@@ -1,3 +1,7 @@
-import { ProductEntity } from '../entities';
+import { ProductEntity, ProductVariantEntity } from '../entities';
 
-export class ProductResponseDto extends ProductEntity {}
+export class ProductVariantResponseDto extends ProductVariantEntity {}
+
+export class ProductResponseDto extends ProductEntity {
+  declare variants: ProductVariantResponseDto[];
+}

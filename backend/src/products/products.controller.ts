@@ -1,4 +1,4 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Controller, Get, Query, Param } from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { LoggerService } from '@/common/modules/logger/services/logger.service';
 import { ApiPaginatedResponse } from '@/common/decorators/api-paginated-response.decorator';
@@ -18,7 +18,7 @@ export class ProductsController {
   ) {}
 
   @Get('/search')
-  @ApiPaginatedResponse(ProductQueryParamsDto)
+  @ApiPaginatedResponse(ProductResponseDto)
   async findAll(
     @Query() queryParams: ProductQueryParamsDto,
   ): Promise<PaginationResponseDto<ProductResponseDto>> {
@@ -41,7 +41,7 @@ export class ProductsController {
 
   @ApiOperation({ summary: 'Get product by ID' })
   @Get(':id')
-  async findOne(@Query('id') id: string): Promise<ProductResponseDto> {
+  async findOne(@Param('id') id: string): Promise<ProductResponseDto> {
     try {
       this.logger.log({
         className: this.className,

@@ -1,4 +1,3 @@
-import { CartItemEntity } from '@/carts/entities/cart-item.entity';
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -7,26 +6,24 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { ProductVariantEntity } from './product-variant.entity';
 
 @Entity('products')
 export class ProductEntity {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ type: 'varchar', length: 255 })
+  @Column({ type: 'varchar', length: 255, unique: true })
   name: string;
 
   @Column({ type: 'text', nullable: true })
   description: string;
 
-  @Column({ type: 'decimal', precision: 10, scale: 2 })
-  price: number;
+  @Column({ type: 'varchar', length: 255 })
+  category: string;
 
-  @Column({ type: 'int', default: 0 })
-  stock: number;
-
-  @OneToMany(() => CartItemEntity, (cartItem) => cartItem.product)
-  cartItems: CartItemEntity[];
+  @OneToMany(() => ProductVariantEntity, (variant) => variant.product)
+  variants: ProductVariantEntity[];
 
   @CreateDateColumn({ type: 'timestamp', name: 'created_at' })
   createdAt: Date;

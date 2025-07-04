@@ -1,10 +1,9 @@
 import { LoggerService } from '@/common/modules/logger/services/logger.service';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { ProductEntity } from './entities';
-import { FindOptionsOrder, Repository, Like } from 'typeorm';
+import { ProductEntity, ProductVariantEntity } from './entities';
+import { Repository } from 'typeorm';
 import { PaginationOptionsDto } from '@/common/dtos/pagination-options.dto';
-import { Order } from '@/common/consts/order.const';
 import { PaginationResponseDto } from '@/common/dtos/pagination-response.dto';
 import { ProductResponseDto } from './dtos/product-response.dto';
 import { PaginationMetaDto } from '@/common/dtos/pagination-meta.dto';
@@ -18,6 +17,8 @@ export class ProductsService {
   constructor(
     @InjectRepository(ProductEntity)
     private readonly productRepository: Repository<ProductEntity>,
+    @InjectRepository(ProductVariantEntity)
+    private readonly productVariantRepository: Repository<ProductVariantEntity>,
     private readonly logger: LoggerService,
   ) {}
 
@@ -35,16 +36,39 @@ export class ProductsService {
       const filters = new ProductFilterOptionsDto(others);
 
       const skip = (page - 1) * take;
-      const [entities, itemCount] = await this.productRepository.findAndCount({
-        skip,
-        take,
-        order: { createdAt: order } as FindOptionsOrder<ProductEntity>,
-        where: {
-          ...(filters.keyword && {
-            name: Like(`%${filters.keyword}%`),
-          }),
-        },
-      });
+
+      const queryBuilder = this.productRepository.createQueryBuilder('product');
+
+      queryBuilder
+        .leftJoinAndSelect('product.variants', 'variant')
+        .skip(skip)
+        .take(take)
+        .orderBy('product.createdAt', order);
+
+      if (filters.keyword) {
+        queryBuilder.andWhere('product.name LIKE :keyword', {
+          keyword: `%${filters.keyword}%`,
+        });
+      }
+
+      if (filters.category) {
+        queryBuilder.andWhere('product.category = :category', {
+          category: filters.category,
+        });
+      }
+
+      if (filters.size) {
+        queryBuilder.andWhere('variant.size = :size', { size: filters.size });
+      }
+
+      if (filters.color) {
+        queryBuilder.andWhere('variant.color = :color', {
+          color: filters.color,
+        });
+      }
+
+      const [entities, itemCount] = await queryBuilder.getManyAndCount();
+
       const paginationMeta = new PaginationMetaDto({
         paginationOptions,
         itemCount,
@@ -71,7 +95,10 @@ export class ProductsService {
         method: 'findOne',
         payload: { id },
       });
-      const entity = await this.productRepository.findOneBy({ id: Number(id) });
+      const entity = await this.productRepository.findOne({
+        where: { id: Number(id) },
+        relations: ['variants'],
+      });
       if (!entity) {
         throw new NotFoundException(`Product with id ${id} not found`);
       }
