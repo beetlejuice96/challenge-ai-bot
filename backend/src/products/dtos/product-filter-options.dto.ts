@@ -27,6 +27,12 @@ export class ProductFilterOptionsDto {
   @IsString()
   readonly color?: string;
 
+  @ApiPropertyOptional()
+  @Type(() => String)
+  @IsOptional()
+  @IsString()
+  readonly name?: string;
+
   constructor(params: ProductFilterOptionsDto) {
     Object.assign(this, params);
   }

@@ -46,24 +46,35 @@ export class ProductsService {
         .orderBy('product.createdAt', order);
 
       if (filters.keyword) {
-        queryBuilder.andWhere('product.name LIKE :keyword', {
-          keyword: `%${filters.keyword}%`,
-        });
+        queryBuilder.andWhere(
+          '(product.name LIKE :keyword OR product.description LIKE :keyword OR product.category LIKE :keyword)',
+          {
+            keyword: `%${filters.keyword}%`,
+          },
+        );
       }
 
       if (filters.category) {
         queryBuilder.andWhere('product.category = :category', {
-          category: filters.category,
+          category: filters.category.toLowerCase(),
         });
       }
 
       if (filters.size) {
-        queryBuilder.andWhere('variant.size = :size', { size: filters.size });
+        queryBuilder.andWhere('variant.size = :size', {
+          size: filters.size.toLowerCase(),
+        });
       }
 
       if (filters.color) {
         queryBuilder.andWhere('variant.color = :color', {
-          color: filters.color,
+          color: filters.color.toLowerCase(),
+        });
+      }
+
+      if (filters.name) {
+        queryBuilder.andWhere('product.name LIKE :name', {
+          name: `%${filters.name.toLowerCase()}%`,
         });
       }
 

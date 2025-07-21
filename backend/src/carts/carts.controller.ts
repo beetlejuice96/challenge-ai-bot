@@ -15,14 +15,14 @@ export class CartsController {
 
   @ApiOperation({ summary: 'Create a new cart' })
   @Post()
-  async create(): Promise<void> {
+  async create(): Promise<CartEntity> {
     try {
       this.logger.log({
         className: this.className,
         method: 'create',
         payload: {},
       });
-      await this.cartsService.create();
+      return await this.cartsService.create();
     } catch (error) {
       this.logger.error({
         className: this.className,
