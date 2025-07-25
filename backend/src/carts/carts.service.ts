@@ -65,4 +65,105 @@ export class CartsService {
       throw error;
     }
   }
+
+  async findOne(cartId: number): Promise<CartEntity> {
+    try {
+      this.logger.log({
+        className: this.className,
+        method: 'findOne',
+        payload: { cartId },
+      });
+      const cart = await this.cartRepository.findOne({
+        where: { id: cartId },
+        relations: [
+          'cartItems',
+          'cartItems.productVariant',
+          'cartItems.productVariant.product',
+        ],
+      });
+      if (!cart) {
+        throw new NotFoundException(`Cart with ID ${cartId} not found`);
+      }
+      return cart;
+    } catch (error) {
+      this.logger.error({
+        className: this.className,
+        method: 'findOne',
+        payload: error instanceof Error ? error.message : String(error),
+      });
+      throw error;
+    }
+  }
+
+  async addItem(
+    cartId: number,
+    itemData: { product_variant_id: number; qty: number },
+  ): Promise<void> {
+    try {
+      this.logger.log({
+        className: this.className,
+        method: 'addItem',
+        payload: { cartId, itemData },
+      });
+      const cart = await this.cartRepository.findOneBy({ id: cartId });
+      if (!cart) {
+        throw new NotFoundException(`Cart with ID ${cartId} not found`);
+      }
+      const cartItem = this.cartItemRepository.create({
+        ...itemData,
+        cart,
+      });
+      await this.cartItemRepository.save(cartItem);
+    } catch (error) {
+      this.logger.error({
+        className: this.className,
+        method: 'addItem',
+        payload: error instanceof Error ? error.message : String(error),
+      });
+      throw error;
+    }
+  }
+
+  async updateItem(
+    cartId: number,
+    itemId: number,
+    itemData: Partial<CartItemEntity>,
+  ): Promise<CartEntity> {
+    try {
+      this.logger.log({
+        className: this.className,
+        method: 'updateItem',
+        payload: { cartId, itemId, itemData },
+      });
+      const cart = await this.cartRepository.findOne({
+        where: { id: cartId },
+        relations: ['cartItems'],
+      });
+      if (!cart) {
+        throw new NotFoundException(`Cart with ID ${cartId} not found`);
+      }
+      const cartItem = await this.cartItemRepository.findOneBy({
+        id: itemId,
+        cart_id: cartId,
+      });
+      if (!cartItem) {
+        throw new NotFoundException(`Cart item with ID ${itemId} not found`);
+      }
+      Object.assign(cartItem, itemData);
+      const itemUpdated = await this.cartItemRepository.save(cartItem);
+      return {
+        ...cart,
+        cartItems: cart.cartItems.map((item) =>
+          item.id === itemUpdated.id ? itemUpdated : item,
+        ),
+      };
+    } catch (error) {
+      this.logger.error({
+        className: this.className,
+        method: 'updateItem',
+        payload: error instanceof Error ? error.message : String(error),
+      });
+      throw error;
+    }
+  }
 }

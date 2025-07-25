@@ -1,4 +1,12 @@
-import { Body, Controller, Param, Patch, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Post,
+} from '@nestjs/common';
 import { CartsService } from './carts.service';
 import { LoggerService } from '@/common/modules/logger/services/logger.service';
 import { CartEntity } from './entities';
@@ -50,6 +58,75 @@ export class CartsController {
       this.logger.error({
         className: this.className,
         method: 'update',
+        payload: error instanceof Error ? error.message : String(error),
+      });
+      throw error;
+    }
+  }
+
+  @ApiOperation({ summary: 'Add item to cart' })
+  @Post(':id/items')
+  async addItem(
+    @Param('id', ParseIntPipe) cartId: number,
+    @Body() itemData: { product_variant_id: number; qty: number },
+  ): Promise<void> {
+    try {
+      this.logger.log({
+        className: this.className,
+        method: 'addItem',
+        payload: { cartId, itemData },
+      });
+      await this.cartsService.addItem(cartId, itemData);
+    } catch (error) {
+      this.logger.error({
+        className: this.className,
+        method: 'addItem',
+        payload: error instanceof Error ? error.message : String(error),
+      });
+      throw error;
+    }
+  }
+
+  @ApiOperation({ summary: 'Update item quantity in cart' })
+  @Patch(':id/items/:itemId')
+  async updateItem(
+    @Param('id', ParseIntPipe) cartId: number,
+    @Param('itemId', ParseIntPipe) itemId: number,
+    @Body() updateData: { qty: number },
+  ): Promise<CartEntity> {
+    try {
+      this.logger.log({
+        className: this.className,
+        method: 'updateItem',
+        payload: { cartId, itemId, updateData },
+      });
+      return this.cartsService.updateItem(cartId, itemId, updateData);
+    } catch (error) {
+      this.logger.error({
+        className: this.className,
+        method: 'updateItem',
+        payload: error instanceof Error ? error.message : String(error),
+      });
+      throw error;
+    }
+  }
+
+  @ApiOperation({ summary: 'Get cart details' })
+  @Get(':id')
+  async getCartDetails(
+    @Param('id', ParseIntPipe) cartId: number,
+  ): Promise<CartEntity> {
+    try {
+      this.logger.log({
+        className: this.className,
+        method: 'getCartDetails',
+        payload: { cartId },
+      });
+      return await this.cartsService.findOne(cartId);
+    } catch (error) {
+      this.logger.error({
+        className: this.className,
+        method: 'getCartDetails',
         payload: error instanceof Error ? error.message : String(error),
       });
       throw error;

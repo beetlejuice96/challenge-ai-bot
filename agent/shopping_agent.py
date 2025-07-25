@@ -279,37 +279,168 @@ def create_cart() -> str:
         raise ToolException(f"Error inesperado creando carrito: {str(e)}")
 
 @tool
-def add_to_cart(product_id: str, quantity: int = 1, cart_id: str = None) -> str:
+def add_item_to_cart(cart_id: str, product_variant_id: int, qty: int = 1) -> str:
     """
-    Agrega un producto al carrito de compras.
-    Si no se especifica cart_id, usa el carrito de la sesión actual.
+    Agrega un item específico al carrito usando el ID de la variante del producto.
+    
+    Args:
+        cart_id: ID del carrito
+        product_variant_id: ID de la variante del producto a agregar
+        qty: Cantidad del producto (por defecto 1)
     """
     backend_url = os.getenv('BACKEND_URL', 'http://localhost:3000')
     
     if not cart_id:
-        raise ToolException("Primero necesitas crear un carrito. Usa 'crear_carrito'.")
+        raise ToolException("Necesitas proporcionar un cart_id válido.")
     
     try:
         response = requests.post(
             f"{backend_url}/carts/{cart_id}/items",
             json={
-                'product_id': product_id,
-                'quantity': quantity
+                'product_variant_id': product_variant_id,
+                'qty': qty
             },
             timeout=10,
             headers={'User-Agent': 'Shopping-Agent/1.0'}
         )
         response.raise_for_status()
         
-        return f"✅ Producto {product_id} agregado al carrito (cantidad: {quantity})"
+        return f"✅ Item agregado al carrito ID {cart_id}: Variante {product_variant_id} (cantidad: {qty})"
         
     except requests.exceptions.HTTPError as e:
         if e.response.status_code == 404:
-            raise ToolException("Carrito o producto no encontrado")
+            raise ToolException("Carrito o variante de producto no encontrada")
         else:
-            raise ToolException(f"Error agregando al carrito: {e.response.status_code}")
+            raise ToolException(f"Error agregando item al carrito: {e.response.status_code}")
     except Exception as e:
-        raise ToolException(f"Error inesperado agregando al carrito: {str(e)}")
+        raise ToolException(f"Error inesperado agregando item: {str(e)}")
+
+@tool
+def update_cart_item(cart_id: str, item_id: int, qty: int) -> str:
+    """
+    Actualiza la cantidad de un item específico en el carrito.
+    
+    Args:
+        cart_id: ID del carrito
+        item_id: ID del item en el carrito(es el id del cart-item, no del product-variant)
+        qty: Nueva cantidad del item
+    """
+    backend_url = os.getenv('BACKEND_URL', 'http://localhost:3000')
+    
+    if not cart_id:
+        raise ToolException("Necesitas proporcionar un cart_id válido.")
+    
+    try:
+        response = requests.patch(
+            f"{backend_url}/carts/{cart_id}/items/{item_id}",
+            json={'qty': qty},
+            timeout=10,
+            headers={'User-Agent': 'Shopping-Agent/1.0'}
+        )
+        response.raise_for_status()
+        
+        return f"✅ Item actualizado en carrito ID {cart_id}: Item {item_id} ahora tiene cantidad {qty}"
+        
+    except requests.exceptions.HTTPError as e:
+        if e.response.status_code == 404:
+            raise ToolException("Carrito o item no encontrado")
+        else:
+            raise ToolException(f"Error actualizando item: {e.response.status_code}")
+    except Exception as e:
+        raise ToolException(f"Error inesperado actualizando item: {str(e)}")
+
+@tool
+def update_cart_metadata(cart_id: str, cart_data: dict) -> str:
+    """
+    Actualiza los metadatos del carrito (no los items).
+    
+    Args:
+        cart_id: ID del carrito
+        cart_data: Datos del carrito a actualizar (ej: metadatos, fechas, etc.)
+    """
+    backend_url = os.getenv('BACKEND_URL', 'http://localhost:3000')
+    
+    if not cart_id:
+        raise ToolException("Necesitas proporcionar un cart_id válido.")
+    
+    try:
+        response = requests.patch(
+            f"{backend_url}/carts/{cart_id}",
+            json=cart_data,
+            timeout=10,
+            headers={'User-Agent': 'Shopping-Agent/1.0'}
+        )
+        response.raise_for_status()
+        
+        return f"✅ Carrito ID {cart_id} actualizado correctamente"
+        
+    except requests.exceptions.HTTPError as e:
+        if e.response.status_code == 404:
+            raise ToolException("Carrito no encontrado")
+        else:
+            raise ToolException(f"Error actualizando carrito: {e.response.status_code}")
+    except Exception as e:
+        raise ToolException(f"Error inesperado actualizando carrito: {str(e)}")
+
+@tool
+def get_cart_details(cart_id: str) -> str:
+    """
+    Obtiene el estado completo y detallado del carrito de compras.
+    Incluye todos los items, cantidades, precios y totales.
+    
+    Args:
+        cart_id: ID del carrito a consultar
+    """
+    backend_url = os.getenv('BACKEND_URL', 'http://localhost:3000')
+    
+    if not cart_id:
+        raise ToolException("Necesitas proporcionar un cart_id válido.")
+    
+    try:
+        response = requests.get(
+            f"{backend_url}/carts/{cart_id}",
+            timeout=10,
+            headers={'User-Agent': 'Shopping-Agent/1.0'}
+        )
+        response.raise_for_status()
+        
+        cart_data = response.json()
+        
+        # Formatear información detallada del carrito
+        if not cart_data.get('cartItems'):
+            return f"🛒 El carrito ID {cart_id} está vacío."
+        
+        cart_details = f"""
+🛒 **Carrito ID {cart_id}:**
+- Total de items: {len(cart_data.get('cartItems', []))}
+- Items detallados:"""
+        
+        total_value = 0
+        for item in cart_data.get('cartItems', []):
+            variant = item.get('productVariant', {})
+            product = variant.get('product', {})
+            item_total = float(variant.get('price50U', 0)) * item.get('qty', 0)
+            total_value += item_total
+            
+            cart_details += f"""
+  • {product.get('name', 'Producto')} (ID: {product.get('id', 'N/A')})
+    Variante: Talla {variant.get('size', 'N/A')} - Color {variant.get('color', 'N/A')}
+    Cantidad: {item.get('qty', 0)} × ${variant.get('price50U', 'N/A')} = ${item_total:.2f}"""
+        
+        cart_details += f"\n\n💰 **Total estimado: ${total_value:.2f}**"
+        
+        # Agregar contexto completo para el agente
+        cart_details += f"\n\n🔍 **Datos completos del carrito:** {json.dumps(cart_data, indent=2)}"
+        
+        return cart_details
+        
+    except requests.exceptions.HTTPError as e:
+        if e.response.status_code == 404:
+            raise ToolException("Carrito no encontrado")
+        else:
+            raise ToolException(f"Error obteniendo carrito: {e.response.status_code}")
+    except Exception as e:
+        raise ToolException(f"Error inesperado obteniendo carrito: {str(e)}")
 
 # 4. AGENTE MEJORADO CON LANGGRAPH
 class ShoppingAgent:
@@ -332,7 +463,10 @@ class ShoppingAgent:
             search_products,
             get_product_details,
             create_cart,
-            add_to_cart
+            add_item_to_cart,        # Nueva herramienta
+            update_cart_item,        # Nuev herramienta  
+            update_cart_metadata,     # Nueva herramienta
+            get_cart_details
         ]
         
         # Crear agente con LangGraph
