@@ -14,4 +14,5 @@ BACKEND_URL=http://localhost:3000
 TODO:
 
 [x] arreglar el endpoint `/search` porque esta tiendo erroes con el atributo `skip`
+
 [ ] arreglar los endpoints que involucran al item porque no esta funcionando bien al agregar y quitar items del carrito
